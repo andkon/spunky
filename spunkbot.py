@@ -1,5 +1,14 @@
 """
-biebs = u"For all the times that you rained on my parade. And all the clubs you get in using my name. You think you broke my heart, oh girl for goodness sake. You think I'm crying on my own, well I ain't"
+remaining problems:
+[] how do i keep the pipeline full? I don't wanna have to push code for it to add songs
+[] does it need a db? to store the lyrics? this is kinda related to the above.
+[] twitter posting stuff. basically, it should cut off at the sentence that wouldn't go past 140 characters
+[] maybe replace the \n -> ". " with a special character? maybe ".* " so that you can return to the \n for the tweet. see what spacy considers "significant punct"
+and honestly, maybe try spunkify() without getting rid of newlines. see what it looks like
+
+biebs = u"For all the times that you rained on my parade"/
+u"And all the clubs you get in using my name" 
+/You think you broke my heart, oh girl for goodness sake. You think I'm crying on my own, well I ain't"
 
 import spacy
 en_nlp = spacy.load('en')
@@ -56,16 +65,19 @@ def diagnose(doc):
 	for t in doc:
 		print t.dep_ + ", " + t.pos_ + "/" + t.tag_  + ": " + t.lower_
 
-"""
-# problem rn: 
-rained => spunkned
-think => spunkink
 
-"Whenever there's a verb where "you" is the noun subject, you should first look for a dobj."
-"For all the times that you spunkned on my parade. And all the clubs you get in using my spunk. You spunkink you broke my spunk, oh girl for goodness sake. You spunkink I'm crying on my own, well I ain't"
+import requests
+MUSIXMATCH_BASE_URL = "http://api.musixmatch.com/ws/1.1/"
+MUSIXMATCH_API_KEY = "d9ac0b26bcec0f138369f176fcb470c2"
+chart = requests.get(MUSIXMATCH_BASE_URL + "chart.tracks.get", params={"f_lyrics_language": "en", "country": "us", "f_has_lyrics": True, "apikey": MUSIXMATCH_API_KEY})
+ids = map(lambda x: x['track']['track_id'], chart.json()['message']['body']['track_list'])
 
-Now:
-For all the times that you spunked on my parade. And all the clubs you get in using my spunk. You think you broke my spunk, oh girl for goodness sake. You spunked I'm crying on my own, well I ain't
-so the problem is:
-"think" (ROOT, VERB/VBP) => spunked
-"""
+cleaned_lyrics = []
+for id in ids:
+	r=requests.get(MUSIXMATCH_BASE_URL+"track.lyrics.get", params={"apikey":MUSIXMATCH_API_KEY, "track_id":id})
+	lyrics_body = r.json()['message']['body']['lyrics']['lyrics_body']
+	lyrics_body.replace("\n", ".* ")
+	cleaned_lyrics.append(lyrics_body)
+
+# now post to twitter
+
